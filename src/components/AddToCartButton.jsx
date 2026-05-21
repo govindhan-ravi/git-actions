@@ -18,11 +18,12 @@ export default function AddToCartButton({
   const dispatch = useDispatch();
   const cartItems = useSelector((s) => s.cart.items);
 
-  const cartItem = cartItems.find(
-    (i) =>
-      i.productId === productId &&
-      i.variantId === variantId
-  );
+ const cartItem = cartItems.find(
+  (i) =>
+    String(i.productId) === String(productId) &&
+    String(i.variantId ?? "default") ===
+      String(variantId ?? "default")
+);
 
   /* ❌ OUT OF STOCK */
   if (stock === 0) {
@@ -34,6 +35,12 @@ export default function AddToCartButton({
   }
 
   /* 🟢 STEP CONTROLLER (Blinkit Style) */
+  console.log("BUTTON DATA", {
+  productId,
+  variantId,
+});
+
+console.log("CART ITEMS", cartItems);
   if (cartItem) {
     return (
       <div className="flex items-center justify-between border border-red-600 rounded-lg w-[90px] h-[34px] bg-white">

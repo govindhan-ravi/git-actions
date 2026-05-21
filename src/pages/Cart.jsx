@@ -148,7 +148,7 @@ useEffect(() => {
                   className="w-24 h-24 object-cover rounded-lg"
                 />
 
-                <div className="flex-1">
+                {/* <div className="flex-1">
                   <h3 className="font-semibold">{item.name}</h3>
 
                   {item.variantLabel && (
@@ -194,7 +194,89 @@ useEffect(() => {
                       +
                     </button>
                   </div>
-                </div>
+                </div> */}
+                <div className="flex-1">
+  {/* PRODUCT NAME */}
+  <h3 className="font-semibold text-lg">
+    {item.name}
+  </h3>
+
+  {/* VARIANT */}
+  {item.variantLabel && (
+    <p className="text-sm text-gray-500 mt-1">
+      {item.variantLabel}
+    </p>
+  )}
+
+  {/* UNIT PRICE */}
+  <div className="mt-2">
+    <p className="text-sm text-gray-500">
+      Price per item
+    </p>
+
+    <p className="text-green-600 font-bold text-lg">
+      ₹{item.price}
+    </p>
+  </div>
+
+  {/* QUANTITY CONTROLS */}
+  <div className="flex items-center gap-3 mt-4">
+    <button
+      onClick={() =>
+        dispatch(
+          decreaseQty({
+            productId: item.productId,
+            variantId: item.variantId,
+          })
+        )
+      }
+      className="w-10 h-10 bg-gray-200 rounded-lg text-lg font-bold"
+    >
+      −
+    </button>
+
+    <span className="font-semibold text-lg">
+      {item.qty}
+    </span>
+
+    <button
+      onClick={() =>
+        dispatch(
+          increaseQty({
+            productId: item.productId,
+            variantId: item.variantId,
+          })
+        )
+      }
+      className="w-10 h-10 bg-gray-200 rounded-lg text-lg font-bold"
+    >
+      +
+    </button>
+  </div>
+
+  {/* TOTAL PRICE */}
+  <div className="mt-4 bg-gray-50 rounded-lg p-3 border">
+    <div className="flex justify-between text-sm">
+      <span className="text-gray-600">
+        Calculation
+      </span>
+
+      <span className="font-medium">
+        ₹{item.price} × {item.qty}
+      </span>
+    </div>
+
+    <div className="flex justify-between mt-2">
+      <span className="font-semibold">
+        Item Total
+      </span>
+
+      <span className="text-lg font-bold text-black">
+        ₹{item.price * item.qty}
+      </span>
+    </div>
+  </div>
+</div>
 
                 <button
                   onClick={() =>

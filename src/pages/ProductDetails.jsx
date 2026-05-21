@@ -42,6 +42,7 @@ export default function ProductDetails() {
       .then((res) => res.json())
       .then((data) => {
         setProduct(data);
+        console.log(data)
 
         const imgs =
           data.images?.map((img) =>
@@ -59,17 +60,61 @@ export default function ProductDetails() {
   }, [id]);
 
   if (!product) return null;
-const price = selectedVariant?.price ?? product.price ?? 0;
-const mrp = selectedVariant?.mrp ?? product.mrp ?? null;
+const originalPrice =
+  selectedVariant?.price ??
+  product.price ??
+  0;
 
-const discount =
-  mrp && mrp > price
-    ? Math.round(((mrp - price) / mrp) * 100)
-    : 0;
-  const isWishlisted = wishlist.some(
-    (i) => i.productId === product.id
+const mrp =
+  selectedVariant?.mrp ??
+  product.mrp ??
+  null;
+
+/* EXPIRY DISCOUNT */
+const today = new Date();
+
+const expiry = product.expiry_date
+  ? new Date(product.expiry_date)
+  : null;
+
+let diffDays = null;
+let expiryDiscount = 0;
+
+if (expiry) {
+  const diffTime = expiry - today;
+  diffDays = Math.ceil(
+    diffTime / (1000 * 60 * 60 * 24)
   );
 
+  if (diffDays <= 1) expiryDiscount = 60;
+  else if (diffDays <= 2) expiryDiscount = 50;
+  else if (diffDays <= 3) expiryDiscount = 30;
+}
+
+/* MRP DISCOUNT */
+const mrpDiscount =
+  mrp && mrp > originalPrice
+    ? Math.round(
+        ((mrp - originalPrice) / mrp) * 100
+      )
+    : 0;
+
+/* FINAL */
+const discount = Math.max(
+  mrpDiscount,
+  expiryDiscount
+);
+
+const price =
+  discount > 0
+    ? Math.round(
+        originalPrice -
+          (originalPrice * discount) / 100
+      )
+    : originalPrice;
+    const isWishlisted = wishlist.some(
+    (i) => i.productId === product.id
+  );
   /* ================= IMAGE NAV ================= */
   const nextImage = () => {
     if (!images.length) return;
@@ -242,27 +287,7 @@ const discount =
             </span>
           </div>
 
-          {/* PRICE */}
-        
-          {/* <div className="flex items-center gap-3 text-3xl font-bold">
-
-  <span className="text-green-600">
-    ₹{price}
-  </span>
-
-  {mrp && mrp > price && (
-    <span className="text-gray-400 line-through text-xl">
-      ₹{mrp}
-    </span>
-  )}
-
-</div>
-
-{mrp && mrp > price && (
-  <p className="text-green-600 text-sm font-medium">
-    You save ₹{mrp - price}
-  </p>
-)} */}
+          
 <div className="flex items-center gap-3 mt-2">
 
   <span className="text-3xl font-bold text-green-600">
@@ -351,11 +376,11 @@ const discount =
   productId={product.id}
   variantId={selectedVariant?.id ?? "default"}
   name={product.name}
-  price={selectedVariant?.price ?? product.price}
+  price={price}
   image={mainImage}
   variantLabel={selectedVariant?.variant_label}
   stock={selectedVariant?.stock ?? product.stock}
-/> 
+/>
 
         </div>
       </div>

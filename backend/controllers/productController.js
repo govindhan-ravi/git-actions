@@ -172,29 +172,69 @@ export const getProducts = async (req, res) => {
     const limit = Number(req.query.limit) || 20;
     const offset = (page - 1) * limit;
 
+    // const [rows] = await db.query(
+    //   `
+    //   SELECT p.*,
+    //   (
+    //     SELECT v.variant_label FROM product_variants v
+    //     WHERE v.product_id = p.id
+    //     ORDER BY v.price ASC LIMIT 1
+    //   ) AS variant_label,
+
+    //   ${PRICE_QUERY}
+
+    //   (
+    //     SELECT SUM(v.stock) FROM product_variants v
+    //     WHERE v.product_id = p.id
+    //   ) AS stock
+
+    //   FROM products p
+    //   WHERE p.active = 1
+    //   ORDER BY p.id DESC
+    //   LIMIT ? OFFSET ?
+    //   `,
+    //   [limit, offset]
+    // );
     const [rows] = await db.query(
-      `
-      SELECT p.*,
-      (
-        SELECT v.variant_label FROM product_variants v
-        WHERE v.product_id = p.id
-        ORDER BY v.price ASC LIMIT 1
-      ) AS variant_label,
+  `
+  SELECT 
+    p.*,
 
-      ${PRICE_QUERY}
+    c.name AS category_name,
+    s.name AS subcategory_name,
 
-      (
-        SELECT SUM(v.stock) FROM product_variants v
-        WHERE v.product_id = p.id
-      ) AS stock
+    (
+      SELECT v.variant_label 
+      FROM product_variants v
+      WHERE v.product_id = p.id
+      ORDER BY v.price ASC 
+      LIMIT 1
+    ) AS variant_label,
 
-      FROM products p
-      WHERE p.active = 1
-      ORDER BY p.id DESC
-      LIMIT ? OFFSET ?
-      `,
-      [limit, offset]
-    );
+    ${PRICE_QUERY}
+
+    (
+      SELECT SUM(v.stock) 
+      FROM product_variants v
+      WHERE v.product_id = p.id
+    ) AS stock
+
+  FROM products p
+
+  LEFT JOIN categories c
+  ON p.category_id = c.id
+
+  LEFT JOIN subcategories s
+  ON p.subcategory_id = s.id
+
+  WHERE p.active = 1
+
+  ORDER BY p.id DESC
+
+  LIMIT ? OFFSET ?
+  `,
+  [limit, offset]
+);
 
     res.json(normalizeProducts(rows));
   } catch (err) {
@@ -546,16 +586,135 @@ export const getSimilarProducts = async (req, res) => {
 export const getSuggestedProducts = getSimilarProducts;
  
 /* ================= SEARCH ================= */
+
+// export const searchProducts = async (req, res) => {
+
+//   try {
+
+//     const q =
+//       req.query.q?.trim().toLowerCase() || "";
+
+//     const [rows] = await db.query(
+    
+//       `SELECT 
+//         p.*,
+
+//         c.name AS category_name,
+//         s.name AS subcategory_name
+
+//       FROM products p
+
+//       LEFT JOIN categories c
+//       ON p.category_id = c.id
+
+//       LEFT JOIN subcategories s
+//       ON p.subcategory_id = s.id
+
+//       WHERE
+//         p.active = 1
+
+//       AND
+//       (
+//         LOWER(p.name) LIKE ?
+//         OR LOWER(c.name) LIKE ?
+//         OR LOWER(s.name) LIKE ?
+//       )
+
+//       ORDER BY p.id DESC`,
+//       [`%${q}%`, `%${q}%`, `%${q}%`]
+//     );
+
+//     res.json(rows);
+
+//   } catch (err) {
+
+//     console.log(err);
+
+//     res.status(500).json({
+//       message: "Search failed"
+//     });
+
+//   }
+
+// };
 export const searchProducts = async (req, res) => {
-  const { q } = req.query;
-  if (!q) return res.json([]);
- 
-  const [rows] = await db.query(
-    `SELECT id, name FROM products WHERE active = 1 AND name LIKE ? LIMIT 10`,
-    [`%${q}%`]
-  );
- 
-  res.json(rows);
+
+  try {
+
+    const q =
+      req.query.q?.toString().trim().toLowerCase() || "";
+
+    const [rows] = await db.query(
+
+      `
+      SELECT 
+  p.id,
+  p.name,
+  p.description,
+  p.active,
+
+  c.name AS category_name,
+  s.name AS subcategory_name,
+
+  (
+    SELECT v.variant_label
+    FROM product_variants v
+    WHERE v.product_id = p.id
+    LIMIT 1
+  ) AS variant_label,
+
+  (
+    SELECT v.price
+    FROM product_variants v
+    WHERE v.product_id = p.id
+    LIMIT 1
+  ) AS price,
+
+  (
+    SELECT SUM(v.stock)
+    FROM product_variants v
+    WHERE v.product_id = p.id
+  ) AS stock
+
+FROM products p
+
+LEFT JOIN categories c
+ON p.category_id = c.id
+
+LEFT JOIN subcategories s
+ON p.subcategory_id = s.id
+
+WHERE
+  p.active = 1
+
+AND
+(
+  LOWER(TRIM(p.name)) LIKE ?
+  OR LOWER(TRIM(c.name)) LIKE ?
+  OR LOWER(TRIM(s.name)) LIKE ?
+)
+
+ORDER BY p.id DESC `,
+      [
+        `%${q}%`,
+        `%${q}%`,
+        `%${q}%`
+      ]
+
+    );
+
+    res.json(rows);
+
+  } catch (err) {
+
+    console.log(err);
+
+    res.status(500).json({
+      message: "Search failed"
+    });
+
+  }
+
 };
 /* ================= TOP PICKS (HOME) ================= */
 export const getTopPicks = async (req, res) => {

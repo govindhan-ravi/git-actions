@@ -28,6 +28,7 @@ import TodaysDeal from "../pages/offers/TodaysDeal";
 import SuperStore from "../pages/offers/SuperStore";
 import OfferZone from "../pages/offers/OfferZone";
 import BannerPage from "../pages/BannerPage";
+import SearchPage from "../pages/SearchPage";
 
 /* ================= ADMIN ================= */
 import AdminLogin from "../Admin/AdminLogin";
@@ -76,6 +77,7 @@ export default function AppRoutes() {
 <Route path="/offers/today" element={<TodaysDeal />} />
 <Route path="/super-store" element={<SuperStore />} />
 <Route path="/offers/offer-zone" element={<OfferZone />} />
+<Route path="/search" element={<SearchPage />} />
 
       {/* ================= USER ORDERS ================= */}
       <Route path="/orders" element={<MyOrders />} />
