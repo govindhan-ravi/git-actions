@@ -22,7 +22,13 @@ import {
 import { getAdminProducts } from "../controllers/productController.js";
  import { bulkUploadProducts } from "../controllers/productController.js";
  import { bulkUpdatePrice } from "../controllers/productController.js";
- import { getOfferZoneProducts } from "../controllers/productController.js";
+ import {
+  getOfferZoneProducts,
+  getFreeDeliveryProducts,
+  getTodayDealsProducts,
+  getSuperStoreProducts,
+  getHalfPriceProducts
+} from "../controllers/productController.js";
 import upload from "../middleware/upload.js";
  
 const router = express.Router();
@@ -33,6 +39,11 @@ router.post("/upload", upload.array("images", 10), uploadImages);
 /* ================= HOME PAGE ================= */
 router.get("/top-picks", getTopPicks);
 router.get("/grouped", getGroupedProducts);
+router.get("/offer-zone", getOfferZoneProducts);
+router.get("/free-delivery", getFreeDeliveryProducts);
+router.get("/todays-deal", getTodayDealsProducts);
+router.get("/super-store", getSuperStoreProducts);
+router.get("/fifty-percent-off", getHalfPriceProducts);
  
 /* ================= SEARCH ================= */
 router.get("/search", searchProducts);

@@ -15,8 +15,8 @@ const baseQuery = `
     p.images,
     p.expiry_date,
 
-    COALESCE(MIN(pv.price), p.price) AS price,
-    COALESCE(SUM(pv.stock), p.stock) AS stock,
+    MIN(pv.price) AS price,
+SUM(pv.stock) AS stock,
     MIN(pv.mrp) AS mrp,
 
     ROUND(
@@ -40,20 +40,36 @@ router.get("/:type", async (req, res) => {
 
       /* 🟢 FREE DELIVERY */
       case "free-delivery":
-        query = baseQuery + `
-          WHERE p.is_free_delivery = 1
-          GROUP BY p.id
-        `;
-        break;
+  query = `
+    SELECT
+      p.*,
+      MIN(pv.price) AS price,
+      SUM(pv.stock) AS stock,
+      MIN(pv.mrp) AS mrp
+    FROM products p
+    JOIN product_variants pv
+      ON pv.product_id = p.id
+    WHERE pv.is_free_delivery = 1
+    GROUP BY p.id
+  `;
+  break;
 
       /* 🟠 TODAY DEAL */
-      case "today-deal":
-        query = baseQuery + `
-          WHERE p.is_today_deal = 1
-          GROUP BY p.id
-        `;
-        break;
-
+    case "todays-deal":
+  query = `
+    SELECT
+      p.*,
+      MIN(pv.price) AS price,
+      SUM(pv.stock) AS stock,
+      MIN(pv.mrp) AS mrp
+    FROM products p
+    JOIN product_variants pv
+      ON pv.product_id = p.id
+    WHERE pv.is_today_deal = 1
+      AND p.active = 1
+    GROUP BY p.id
+  `;
+  break;
       /* 🟣 OFFER ZONE (EXPIRY) */
       case "offer-zone":
         query = baseQuery + `
@@ -65,18 +81,39 @@ router.get("/:type", async (req, res) => {
 
       /* 🟡 SUPER STORE */
       case "super-store":
-        query = baseQuery + `
-          GROUP BY p.id
-        `;
-        break;
+  query = `
+    SELECT
+      p.*,
+      MIN(pv.price) AS price,
+      SUM(pv.stock) AS stock,
+      MIN(pv.mrp) AS mrp
+    FROM products p
+    LEFT JOIN product_variants pv
+      ON pv.product_id = p.id
+    WHERE pv.is_super_store = 1
+      AND p.active = 1
+    GROUP BY p.id
+  `;
+  break;
 
       /* 🔴 50% OFF */
-      case "half-price":
-        query = baseQuery + `
-          GROUP BY p.id
-          HAVING discount >= 50
-        `;
-        break;
+      case "50-off":
+  
+  query = `
+    SELECT
+      p.*,
+      MIN(pv.price) AS price,
+      SUM(pv.stock) AS stock,
+      MIN(pv.mrp) AS mrp,
+      ROUND(((MIN(pv.mrp) - MIN(pv.price)) / MIN(pv.mrp)) * 100) AS discount
+    FROM products p
+    JOIN product_variants pv ON pv.product_id = p.id
+    WHERE pv.mrp > pv.price
+      AND p.active = 1
+    GROUP BY p.id
+    HAVING discount >= 50
+  `;
+  break;
 
       default:
         return res.status(400).json({ message: "Invalid banner type" });

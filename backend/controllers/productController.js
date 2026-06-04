@@ -106,27 +106,97 @@ export const uploadImages = async (req, res) => {
   }
 };
 /* ================= CREATE PRODUCT ================= */
+// export const createProductWithVariants = async (req, res) => {
+//   try {
+//     const {
+//       name,
+//       category_id,
+//       subcategory_id,
+     
+//       description,
+//       manufacture_date,
+//       expiry_date,
+//        brand,
+//       is_free_delivery,
+//       is_today_deal,
+//       images = [],
+//       variants = [],
+//     } = req.body;
+
+//     const [result] = await db.query(
+//       `INSERT INTO products
+//       (name, category_id, subcategory_id, description, manufacture_date, expiry_date, brand, is_free_delivery, is_today_deal, images, active)
+//       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+//       [
+//         name,
+//         category_id,
+//         subcategory_id || null,
+//         description || null,
+//         manufacture_date || null,
+//         expiry_date || null,
+//         brand || null,
+//         is_free_delivery || 0,
+//         is_today_deal || 0,
+//         JSON.stringify(images),
+//       ]
+//     );
+
+//     const productId = result.insertId;
+
+//     for (const v of variants) {
+//   if (!v.variant_label) continue;
+
+//   await db.query(
+//     `INSERT INTO product_variants
+//     (product_id, variant_label, price, mrp, stock)
+//     VALUES (?, ?, ?, ?, ?)`,
+//     [
+//       productId,
+//       v.variant_label,
+//       v.price ? Number(v.price) : null,
+//       v.mrp ? Number(v.mrp) : null,
+//       v.stock ? Number(v.stock) : 0,
+//     ]
+//   );
+// }
+//     res.json({ success: true, productId });
+//   } catch (err) {
+//     res.status(500).json({ message: err.message });
+//   }
+// };
 export const createProductWithVariants = async (req, res) => {
   try {
+
     const {
       name,
       category_id,
       subcategory_id,
-     
       description,
       manufacture_date,
       expiry_date,
-       brand,
-      is_free_delivery,
-      is_today_deal,
+      brand,
       images = [],
       variants = [],
     } = req.body;
 
+    /* ================= CREATE PRODUCT ================= */
+
     const [result] = await db.query(
-      `INSERT INTO products
-      (name, category_id, subcategory_id, description, manufacture_date, expiry_date, brand, is_free_delivery, is_today_deal, images, active)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+      `
+      INSERT INTO products
+      (
+        name,
+        category_id,
+        subcategory_id,
+        description,
+        manufacture_date,
+        expiry_date,
+        brand,
+        images,
+        active
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
       [
         name,
         category_id,
@@ -135,33 +205,71 @@ export const createProductWithVariants = async (req, res) => {
         manufacture_date || null,
         expiry_date || null,
         brand || null,
-        is_free_delivery || 0,
-        is_today_deal || 0,
         JSON.stringify(images),
+        1,
       ]
     );
 
     const productId = result.insertId;
 
-    for (const v of variants) {
-  if (!v.variant_label) continue;
+    /* ================= CREATE VARIANTS ================= */
 
-  await db.query(
-    `INSERT INTO product_variants
-    (product_id, variant_label, price, mrp, stock)
-    VALUES (?, ?, ?, ?, ?)`,
-    [
+    for (const v of variants) {
+
+      if (!v.variant_label) continue;
+
+      await db.query(
+        `
+        INSERT INTO product_variants
+        (
+          product_id,
+          variant_label,
+          price,
+          mrp,
+          stock,
+          is_free_delivery,
+          is_today_deal
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        `,
+        [
+          productId,
+
+          v.variant_label,
+
+          v.price
+            ? Number(v.price)
+            : 0,
+
+          v.mrp
+            ? Number(v.mrp)
+            : null,
+
+          v.stock
+            ? Number(v.stock)
+            : 0,
+
+          v.is_free_delivery || 0,
+
+          v.is_today_deal || 0,
+        ]
+      );
+
+    }
+
+    res.json({
+      success: true,
       productId,
-      v.variant_label,
-      v.price ? Number(v.price) : null,
-      v.mrp ? Number(v.mrp) : null,
-      v.stock ? Number(v.stock) : 0,
-    ]
-  );
-}
-    res.json({ success: true, productId });
+    });
+
   } catch (err) {
-    res.status(500).json({ message: err.message });
+
+    console.log("CREATE PRODUCT ERROR:", err);
+
+    res.status(500).json({
+      message: err.message,
+    });
+
   }
 };
  
@@ -454,41 +562,34 @@ export const updateProduct = async (req, res) => {
       description,
       manufacture_date,
       expiry_date,
-      is_free_delivery,
-      is_today_deal,
       images = [],
       variants = [],
       removedVariantIds = [],
     } = req.body;
  
     await db.query(
-      `
-      UPDATE products SET
-        name = ?,
-        category_id = ?,
-        subcategory_id = ?,
-        description = ?,
-        manufacture_date = ?,
-        expiry_date = ?,
-        is_free_delivery = ?,
-        is_today_deal = ?,
-        images = ?
-      WHERE id = ?
-      `,
-      [
-        name,
-        category_id,
-        subcategory_id || null,
-        description || null,
-        manufacture_date || null,
-        expiry_date || null,
-        is_free_delivery || 0,
-        is_today_deal || 0,
-        JSON.stringify(images),
-        id,
-      ]
-    );
- 
+  `
+  UPDATE products SET
+    name = ?,
+    category_id = ?,
+    subcategory_id = ?,
+    description = ?,
+    manufacture_date = ?,
+    expiry_date = ?,
+    images = ?
+  WHERE id = ?
+  `,
+  [
+    name,
+    category_id,
+    subcategory_id || null,
+    description || null,
+    manufacture_date || null,
+    expiry_date || null,
+    JSON.stringify(images),
+    id,
+  ]
+);
     if (removedVariantIds.length) {
       await db.query(
         "DELETE FROM product_variants WHERE id IN (?)",
@@ -552,91 +653,80 @@ export const getSimilarProducts = async (req, res) => {
   try {
     const productId = req.params.id;
 
-    const [rows] = await db.query(
+    // Get current product category
+    const [productRows] = await db.query(
       `
-      SELECT p.*,
-
-      (
-        SELECT v.variant_label FROM product_variants v
-        WHERE v.product_id = p.id
-        ORDER BY v.price ASC LIMIT 1
-      ) AS variant_label,
-
-      ${PRICE_QUERY}
-
-      (
-        SELECT SUM(v.stock) FROM product_variants v
-        WHERE v.product_id = p.id
-      ) AS stock
-
-      FROM products p
-      WHERE p.active = 1 AND p.id != ?
-      ORDER BY RAND()
-      LIMIT 10
+      SELECT category
+      FROM products
+      WHERE id = ?
       `,
       [productId]
     );
 
+    if (productRows.length === 0) {
+      return res.status(404).json({
+        message: "Product not found",
+      });
+    }
+
+    const currentCategory = productRows[0].category;
+
+    console.log("CURRENT CATEGORY:", currentCategory);
+
+    // If category is null → return empty array
+    if (!currentCategory) {
+      return res.json([]);
+    }
+
+    // Similar products
+    const [rows] = await db.query(
+      `
+      SELECT 
+        p.*,
+
+        (
+          SELECT v.variant_label
+          FROM product_variants v
+          WHERE v.product_id = p.id
+          ORDER BY v.price ASC
+          LIMIT 1
+        ) AS variant_label,
+
+        ${PRICE_QUERY}
+
+        (
+          SELECT SUM(v.stock)
+          FROM product_variants v
+          WHERE v.product_id = p.id
+        ) AS stock
+
+      FROM products p
+
+      WHERE 
+        p.active = 1
+        AND p.id != ?
+        AND LOWER(TRIM(p.category)) = LOWER(TRIM(?))
+
+      LIMIT 10
+      `,
+      [productId, currentCategory]
+    );
+
+    console.log("SIMILAR PRODUCTS:", rows);
+
     res.json(normalizeProducts(rows));
+
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.log("SIMILAR PRODUCTS ERROR:", err);
+
+    res.status(500).json({
+      message: err.message,
+    });
   }
 };
- 
+
 export const getSuggestedProducts = getSimilarProducts;
- 
 /* ================= SEARCH ================= */
-
-// export const searchProducts = async (req, res) => {
-
-//   try {
-
-//     const q =
-//       req.query.q?.trim().toLowerCase() || "";
-
-//     const [rows] = await db.query(
-    
-//       `SELECT 
-//         p.*,
-
-//         c.name AS category_name,
-//         s.name AS subcategory_name
-
-//       FROM products p
-
-//       LEFT JOIN categories c
-//       ON p.category_id = c.id
-
-//       LEFT JOIN subcategories s
-//       ON p.subcategory_id = s.id
-
-//       WHERE
-//         p.active = 1
-
-//       AND
-//       (
-//         LOWER(p.name) LIKE ?
-//         OR LOWER(c.name) LIKE ?
-//         OR LOWER(s.name) LIKE ?
-//       )
-
-//       ORDER BY p.id DESC`,
-//       [`%${q}%`, `%${q}%`, `%${q}%`]
-//     );
-
-//     res.json(rows);
-
-//   } catch (err) {
-
-//     console.log(err);
-
-//     res.status(500).json({
-//       message: "Search failed"
-//     });
-
-//   }
-
-// };
 
 export const searchProducts = async (req, res) => {
 
@@ -780,47 +870,164 @@ export const getTopPicks = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 }; 
+/* ================= OFFER ZONE PRODUCTS ================= */
+
 export const getOfferZoneProducts = async (req, res) => {
   try {
+
     const [rows] = await db.query(`
-      SELECT p.*,
+      SELECT DISTINCT
+        p.*,
 
-      (
-        SELECT v.variant_label
-        FROM product_variants v
-        WHERE v.product_id = p.id
-        ORDER BY v.price ASC
-        LIMIT 1
-      ) AS variant_label,
+        pv.variant_label,
+        pv.price,
+        pv.mrp,
+        pv.stock,
 
-      ${PRICE_QUERY}
-
-      (
-        SELECT SUM(v.stock)
-        FROM product_variants v
-        WHERE v.product_id = p.id
-      ) AS stock
+        ROUND(
+          ((pv.mrp - pv.price) / pv.mrp) * 100
+        ) AS discount_percentage
 
       FROM products p
-      WHERE p.active = 1
 
-      -- ✅ wider expiry range
-      AND p.expiry_date IS NOT NULL
-      AND p.expiry_date >= CURDATE()
-      AND p.expiry_date <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+      JOIN product_variants pv
+      ON p.id = pv.product_id
 
-      ORDER BY p.expiry_date ASC
+      WHERE
+        p.active = 1
+        AND pv.mrp IS NOT NULL
+        AND pv.mrp > pv.price
+
+      ORDER BY discount_percentage DESC
     `);
 
     res.json(normalizeProducts(rows));
 
   } catch (err) {
-    console.error("OFFER ZONE ERROR:", err);
+
+    console.log("OFFER ZONE ERROR:", err);
+
+    res.status(500).json({
+      message: err.message
+    });
+
+  }
+};
+export const getFreeDeliveryProducts = async (req, res) => {
+  try {
+    const [rows] = await db.query(`
+      SELECT DISTINCT p.*, pv.variant_label, pv.price, pv.mrp, pv.stock
+      FROM products p
+      JOIN product_variants pv ON p.id = pv.product_id
+      WHERE p.active = 1
+      AND pv.is_free_delivery = 1
+    `);
+
+    res.json(normalizeProducts(rows));
+  } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
+export const getTodayDealsProducts = async (req, res) => {
+  try {
 
- 
+    const [rows] = await db.query(`
+      SELECT DISTINCT
+        p.*,
+
+        pv.variant_label,
+        pv.price,
+        pv.mrp,
+        pv.stock
+
+      FROM products p
+
+      JOIN product_variants pv
+      ON p.id = pv.product_id
+
+      WHERE
+        p.active = 1
+        AND pv.is_today_deal = 1
+
+      ORDER BY p.id DESC
+    `);
+
+    res.json(normalizeProducts(rows));
+
+  } catch (err) {
+
+    console.log("TODAY DEALS ERROR:", err);
+
+    res.status(500).json({
+      message: err.message
+    });
+
+  }
+};
+
+export const getHalfPriceProducts = async (req, res) => {
+  try {
+
+    const [rows] = await db.query(`
+      SELECT DISTINCT
+        p.*,
+        pv.variant_label,
+        pv.price,
+        pv.mrp,
+        pv.stock,
+
+        ROUND(
+          ((pv.mrp - pv.price) / pv.mrp) * 100
+        ) AS discount_percentage
+
+      FROM products p
+
+      JOIN product_variants pv
+      ON p.id = pv.product_id
+
+      WHERE
+        p.active = 1
+        AND pv.mrp IS NOT NULL
+        AND pv.mrp > pv.price
+
+        AND ROUND(
+          ((pv.mrp - pv.price) / pv.mrp) * 100
+        ) >= 50
+
+      ORDER BY discount_percentage DESC
+    `);
+
+    res.json(normalizeProducts(rows));
+
+  } catch (err) {
+
+    console.log("50% OFF ERROR:", err);
+
+    res.status(500).json({
+      message: err.message
+    });
+
+  }
+};
+export const getSuperStoreProducts = async (req, res) => {
+  try {
+    const [rows] = await db.query(`
+      SELECT *
+      FROM products
+      WHERE is_super_store = 1
+    `);
+
+    return res.json(rows);
+
+  } catch (err) {
+
+    console.error("SUPER STORE ERROR:", err);
+
+    return res.status(500).json({
+      message: err.message
+    });
+  }
+};
 export const getGroupedProducts = async (req, res) => {
   try {
     const [categories] = await db.query(`SELECT * FROM categories`);
@@ -857,31 +1064,7 @@ export const getGroupedProducts = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-/* ================= NORMALIZER ================= */
-// const normalizeProducts = (rows) => {
-//   return rows.map((p) => {
-//     let images = [];
-//     try {
-//       images = p.images ? JSON.parse(p.images) : [];
-//     } catch {}
-
-//     const formatted = images.map((img) => ({
-//       url: img.url?.startsWith("http")
-//         ? img.url
-//         : `http://localhost:4000${img.url}`,
-//     }));
-
-//     return {
-//       ...p,
-//       images: formatted,
-      
-//       image: formatted[0]?.url || null,
-//       price: Number(p.price) || null,
-//       mrp: Number(p.mrp) || null,
-//       stock: Number(p.stock) || null,
-//     };
-//   });
-// };
+/* ================= REVENUE STATS ================= */
 const normalizeProducts = (rows) => {
   return rows.map((p) => {
     let images = [];
