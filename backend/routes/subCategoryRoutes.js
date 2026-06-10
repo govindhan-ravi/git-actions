@@ -8,7 +8,13 @@ const getSubcategoriesByCategory = async (req, res) => {
     const { categoryId } = req.params;
 
     const [rows] = await db.query(
-      "SELECT id, name, image FROM subcategories WHERE category_id = ? ORDER BY name",
+      `
+      SELECT id, name, image, status
+      FROM subcategories
+      WHERE category_id = ?
+      AND status = 'ACTIVE'
+      ORDER BY name
+      `,
       [categoryId]
     );
 
@@ -18,25 +24,27 @@ const getSubcategoriesByCategory = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
 /* ======================================
    GET ALL SUBCATEGORIES (ADMIN)
 ====================================== */
 router.get("/", async (req, res) => {
   try {
-    const [rows] = await db.query(
-      `
-      SELECT id, name, category_id, image
+    const [rows] = await db.query(`
+      SELECT
+        id,
+        name,
+        category_id,
+        image,
+        status
       FROM subcategories
       ORDER BY name
-      `
-    );
+    `);
+
     res.json(rows);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
-});
- 
+}); 
 /* ======================================
    GET SUBCATEGORIES BY CATEGORY ID
 ====================================== */
@@ -46,14 +54,18 @@ router.get("/:categoryId", async (req, res) => {
     const { categoryId } = req.params;
 
     const [rows] = await db.query(
-      `
-      SELECT id, name, image
-      FROM subcategories
-      WHERE category_id = ?
-      ORDER BY name
-      `,
-      [categoryId]
-    );
+  `
+  SELECT
+    id,
+    name,
+    image,
+    status
+  FROM subcategories
+  WHERE category_id = ?
+  ORDER BY name
+  `,
+  [categoryId]
+);
 
     res.json(rows);
   } catch (err) {
@@ -83,13 +95,13 @@ router.post(
       }
 
       const [result] = await db.query(
-        `
-        INSERT INTO subcategories (name, category_id, image)
-        VALUES (?, ?, ?)
-        `,
-        [name, category_id, image]
-      );
-
+  `
+  INSERT INTO subcategories
+  (name, category_id, image, status)
+  VALUES (?, ?, ?, ?)
+  `,
+  [name, category_id, image, "ACTIVE"]
+);
       res.json({ id: result.insertId });
     } catch (err) {
       console.error("CREATE SUBCATEGORY ERROR:", err);
@@ -105,7 +117,12 @@ router.put(
   upload.single("image"),
   async (req, res) => {
     try {
-      const { name, category_id } = req.body;
+      const {
+        name,
+        category_id,
+        status = "ACTIVE",
+      } = req.body;
+
       const { id } = req.params;
       const newImage = req.file?.filename;
 
@@ -115,31 +132,44 @@ router.put(
       );
 
       if (!rows.length) {
-        return res.status(404).json({ message: "Not found" });
+        return res.status(404).json({
+          message: "Not found",
+        });
       }
 
       await db.query(
         `
         UPDATE subcategories
-        SET name=?, category_id=?, image=?
+        SET
+          name=?,
+          category_id=?,
+          image=?,
+          status=?
         WHERE id=?
         `,
         [
           name,
           category_id,
           newImage || rows[0].image,
+          status,
           id,
         ]
       );
 
-      res.json({ message: "Subcategory updated" });
+      res.json({
+        message: "Subcategory updated",
+      });
     } catch (err) {
-      console.error("UPDATE SUBCATEGORY ERROR:", err);
-      res.status(500).json({ message: err.message });
+      console.error(
+        "UPDATE SUBCATEGORY ERROR:",
+        err
+      );
+      res.status(500).json({
+        message: err.message,
+      });
     }
   }
 );
- 
 /* ===============================
    DELETE SUBCATEGORY (WITH IMAGE)
 ================================ */

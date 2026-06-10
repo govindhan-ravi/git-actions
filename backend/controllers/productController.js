@@ -2,47 +2,6 @@ import db from "../config/db.js";
  import XLSX from "xlsx";
 
 /* ================= COMMON PRICE QUERY ================= */
-// const PRICE_QUERY = `
-// (
-//   SELECT COALESCE(
-//     (
-//       SELECT pp.selling_price
-//       FROM product_prices pp
-//       JOIN product_variants v ON v.id = pp.variant_id
-//       WHERE v.product_id = p.id
-//       ORDER BY pp.created_at DESC
-//       LIMIT 1
-//     ),
-//     (
-//       SELECT v.price
-//       FROM product_variants v
-//       WHERE v.product_id = p.id
-//       ORDER BY v.price ASC
-//       LIMIT 1
-//     )
-//   )
-// ) AS price,
-
-// (
-//   SELECT COALESCE(
-//     (
-//       SELECT pp.mrp
-//       FROM product_prices pp
-//       JOIN product_variants v ON v.id = pp.variant_id
-//       WHERE v.product_id = p.id
-//       ORDER BY pp.created_at DESC
-//       LIMIT 1
-//     ),
-//     (
-//       SELECT v.mrp
-//       FROM product_variants v
-//       WHERE v.product_id = p.id
-//       ORDER BY v.price ASC
-//       LIMIT 1
-//     )
-//   )
-// ) AS mrp,
-// `;
 const PRICE_QUERY = `
 (
   SELECT COALESCE(
@@ -106,64 +65,7 @@ export const uploadImages = async (req, res) => {
   }
 };
 /* ================= CREATE PRODUCT ================= */
-// export const createProductWithVariants = async (req, res) => {
-//   try {
-//     const {
-//       name,
-//       category_id,
-//       subcategory_id,
-     
-//       description,
-//       manufacture_date,
-//       expiry_date,
-//        brand,
-//       is_free_delivery,
-//       is_today_deal,
-//       images = [],
-//       variants = [],
-//     } = req.body;
 
-//     const [result] = await db.query(
-//       `INSERT INTO products
-//       (name, category_id, subcategory_id, description, manufacture_date, expiry_date, brand, is_free_delivery, is_today_deal, images, active)
-//       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
-//       [
-//         name,
-//         category_id,
-//         subcategory_id || null,
-//         description || null,
-//         manufacture_date || null,
-//         expiry_date || null,
-//         brand || null,
-//         is_free_delivery || 0,
-//         is_today_deal || 0,
-//         JSON.stringify(images),
-//       ]
-//     );
-
-//     const productId = result.insertId;
-
-//     for (const v of variants) {
-//   if (!v.variant_label) continue;
-
-//   await db.query(
-//     `INSERT INTO product_variants
-//     (product_id, variant_label, price, mrp, stock)
-//     VALUES (?, ?, ?, ?, ?)`,
-//     [
-//       productId,
-//       v.variant_label,
-//       v.price ? Number(v.price) : null,
-//       v.mrp ? Number(v.mrp) : null,
-//       v.stock ? Number(v.stock) : 0,
-//     ]
-//   );
-// }
-//     res.json({ success: true, productId });
-//   } catch (err) {
-//     res.status(500).json({ message: err.message });
-//   }
-// };
 export const createProductWithVariants = async (req, res) => {
   try {
 

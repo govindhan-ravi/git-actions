@@ -1,6 +1,6 @@
  
 import express from "express";
-import { loginAdmin } from "../controllers/adminauth.js";
+import { loginAdmin ,createAdmin } from "../controllers/adminauth.js";
 import {
   getDashboardStats,
   getUserHistory,
@@ -14,7 +14,7 @@ const router = express.Router();
  
 /* AUTH */
 router.post("/login", loginAdmin);
- 
+router.post("/create", createAdmin);
 /* DASHBOARD */
 router.get("/dashboard",  getDashboardStats);
  

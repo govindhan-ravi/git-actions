@@ -81,4 +81,29 @@ export const deactivateAccount = (req, res) => {
     }
   );
 };
+export const searchUsers = (req, res) => {
+  const { query } = req.params;
+
+  db.query(
+    `
+    SELECT id, name, email
+    FROM users
+    WHERE
+      name LIKE ?
+      OR CAST(id AS CHAR) LIKE ?
+    LIMIT 10
+    `,
+    [`%${query}%`, `%${query}%`],
+    (err, rows) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({
+          message: "Failed to search users",
+        });
+      }
+
+      res.json(rows);
+    }
+  );
+};
 //export { getProfile, updateProfile , deleteAccount };

@@ -16,7 +16,7 @@ export default function AdminSubCategories() {
   const [image, setImage] = useState(null);
   const [editImage, setEditImage] = useState(null);
   const [preview, setPreview] = useState(null);
-
+  const [status, setStatus] = useState("ACTIVE");
   /* ================= LOAD CATEGORIES ================= */
   useEffect(() => {
     fetchCategories();
@@ -64,6 +64,7 @@ export default function AdminSubCategories() {
     if (!sub) return;
 
     setName(sub.name);
+    setStatus(sub.status || "ACTIVE");
     setPreview(
       sub.image
         ? `${API_BASE}/uploads/subcategories/${sub.image}`
@@ -84,6 +85,7 @@ export default function AdminSubCategories() {
     const fd = new FormData();
     fd.append("name", name.trim());
     fd.append("category_id", categoryId);
+    fd.append("status", status);
 
     if (selectedSubId === "NEW") {
       if (!image) {
@@ -121,6 +123,7 @@ export default function AdminSubCategories() {
     setImage(null);
     setEditImage(null);
     setPreview(null);
+    setStatus("ACTIVE");
 
     fetchSubcategories(categoryId);
     alert("Saved successfully");
@@ -130,6 +133,7 @@ export default function AdminSubCategories() {
   const handleEditFromList = (sub) => {
     setSelectedSubId(sub.id.toString());
     setName(sub.name);
+    setStatus(sub.status || "ACTIVE");
     setPreview(
       sub.image
         ? `${API_BASE}/uploads/subcategories/${sub.image}`
@@ -187,23 +191,24 @@ export default function AdminSubCategories() {
           </select>
 
           {/* NAME */}
-          {selectedSubId === "NEW" ? (
-            <input
-              type="text"
-              placeholder="Subcategory name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="border p-3 rounded"
-            />
-          ) : (
-            <input
-              type="text"
-              value={name}
-              disabled
-              className="border p-3 rounded bg-gray-100"
-            />
-          )}
-
+          {/* NAME */}
+<input
+  type="text"
+  placeholder="Subcategory name"
+  value={name}
+  onChange={(e) => setName(e.target.value)}
+  className="border p-3 rounded"
+/>
+{selectedSubId !== "NEW" && (
+  <select
+    value={status}
+    onChange={(e) => setStatus(e.target.value)}
+    className="border p-3 rounded"
+  >
+    <option value="ACTIVE">ACTIVE</option>
+    <option value="INACTIVE">INACTIVE</option>
+  </select>
+)}
           {/* IMAGE */}
           <input
             type="file"
@@ -249,7 +254,7 @@ export default function AdminSubCategories() {
                 key={sub.id}
                 className="border p-4 rounded-lg flex items-center justify-between"
               >
-                <div className="flex items-center gap-3">
+                {/* <div className="flex items-center gap-3">
                   <img
                     src={
                       sub.image
@@ -262,7 +267,10 @@ export default function AdminSubCategories() {
                   <span className="font-medium">
                     {sub.name}
                   </span>
-                </div>
+                </div> */}
+                <span className="font-medium">
+  {sub.name}
+</span>
 
                 <button
                   onClick={() => handleEditFromList(sub)}

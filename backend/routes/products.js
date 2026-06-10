@@ -1,5 +1,6 @@
  
 import express from "express";
+import db from "../config/db.js";
 import {
   getProducts,
   getProduct,
@@ -82,7 +83,61 @@ router.get("/offer-zone", getOfferZoneProducts);
 router.get("/:id", getProduct);
 router.put("/:id", updateProduct);
 router.delete("/:id", deleteProduct);
+// router.put("/:id/status", async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const { status } = req.body;
+
+//     await db.query(
+//       "UPDATE products SET status=? WHERE id=?",
+//       [status, id]
+//     );
+
+//     res.json({
+//       success: true,
+//       message: "Product status updated",
+//     });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({
+//       message: err.message,
+//     });
+//   }
+// });
  
+
+ 
+ router.put("/:id/status", async (req, res) => {
+  try {
+    console.log("BODY:", req.body);
+
+    const { id } = req.params;
+    const { status } = req.body;
+
+    await db.query(
+  `
+  UPDATE products
+  SET
+    status = ?,
+    active = ?
+  WHERE id = ?
+  `,
+  [
+    status,
+    status === "ACTIVE" ? 1 : 0,
+    id,
+  ]
+);
+
+    res.json({
+      success: true,
+      message: "Product status updated",
+    });
+  } catch (err) {
+    console.error("STATUS ERROR:", err);
+    res.status(500).json({
+      message: err.message,
+    });
+  }
+});
 export default router;
- 
- 

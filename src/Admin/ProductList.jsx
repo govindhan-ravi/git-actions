@@ -380,6 +380,30 @@ const fetchProducts = async () => {
   if (loading) return <p className="p-6">Loading...</p>;
 
   const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))];
+  const toggleStatus = async (product) => {
+  try {
+    await fetch(
+      `http://localhost:4000/api/products/${product.id}/status`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          status:
+            product.status === "ACTIVE"
+              ? "INACTIVE"
+              : "ACTIVE",
+        }),
+      }
+    );
+
+    fetchProducts();
+  } catch (err) {
+    console.error("STATUS UPDATE ERROR:", err);
+  }
+};
 
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
@@ -475,6 +499,7 @@ const fetchProducts = async () => {
               <th className="p-3">Brand</th>
               <th className="p-3">Price</th>
               <th className="p-3">Stock</th>
+              <th className="p-3">Status</th>
               <th className="p-3">Actions</th>
             </tr>
           </thead>
@@ -528,21 +553,46 @@ const fetchProducts = async () => {
 
                 <td className="p-3">{p.stock}</td>
 
-                <td className="p-3 flex gap-2">
-                  <Link
-                    to={`/admin/products/update/${p.id}`}
-                    className="bg-blue-100 text-blue-600 px-2 py-1 rounded text-xs"
-                  >
-                    Edit
-                  </Link>
+<td className="p-3">
+  <span
+    className={`px-2 py-1 rounded text-xs font-semibold ${
+      p.status === "ACTIVE"
+        ? "bg-green-100 text-green-700"
+        : "bg-red-100 text-red-700"
+    }`}
+  >
+    {p.status}
+  </span>
+</td>
 
-                  <button
-                    onClick={() => deleteProduct(p.id)}
-                    className="bg-red-100 text-red-600 px-2 py-1 rounded text-xs"
-                  >
-                    Delete
-                  </button>
-                </td>
+<td className="p-3 flex gap-2">
+  <button
+    onClick={() => toggleStatus(p)}
+    className={`px-2 py-1 rounded text-xs ${
+      p.status === "ACTIVE"
+        ? "bg-red-100 text-red-600"
+        : "bg-green-100 text-green-600"
+    }`}
+  >
+    {p.status === "ACTIVE"
+      ? "Deactivate"
+      : "Activate"}
+  </button>
+
+  <Link
+    to={`/admin/products/update/${p.id}`}
+    className="bg-blue-100 text-blue-600 px-2 py-1 rounded text-xs"
+  >
+    Edit
+  </Link>
+
+  <button
+    onClick={() => deleteProduct(p.id)}
+    className="bg-red-100 text-red-600 px-2 py-1 rounded text-xs"
+  >
+    Delete
+  </button>
+</td>
               </tr>
             ))}
 
