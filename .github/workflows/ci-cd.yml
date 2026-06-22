@@ -1,0 +1,355 @@
+name: CI/CD Pipeline for Db4fresh
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # -------------------------------------------------------------------
+  # 1️⃣ Checkout & Environment Setup
+  # -------------------------------------------------------------------
+  checkout:
+    runs-on: ubuntu-latest
+    outputs:
+      node-version: ${{ steps.setup-node.outputs.node-version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        id: setup-node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+  # -------------------------------------------------------------------
+  # 2️⃣ Install Dependencies (frontend & backend)
+  # -------------------------------------------------------------------
+  install-deps:
+    needs: checkout
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Restore Node.js cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install Frontend dependencies
+        run: npm ci
+        working-directory: ${{ github.workspace }}
+
+      - name: Install Backend dependencies
+        run: npm ci
+        working-directory: ${{ github.workspace }}/backend
+
+  # -------------------------------------------------------------------
+  # 3️⃣ Build Frontend & Backend
+  # -------------------------------------------------------------------
+  build:
+    needs: install-deps
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Frontend (Vite)
+        run: npm run build
+        working-directory: ${{ github.workspace }}
+
+      - name: Build Backend (transpile if needed)
+        run: |
+          # If you have a build step, add it here. For plain JS, this can be a noop.
+          echo "Backend build step – none required"
+        working-directory: ${{ github.workspace }}/backend
+
+  # -------------------------------------------------------------------
+  # 4️⃣ Static Code Analysis – SonarQube
+  # -------------------------------------------------------------------
+  sonar:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@v2
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          projectBaseDir: ${{ github.workspace }}
+
+  # -------------------------------------------------------------------
+  # 5️⃣ Quality Gate Validation
+  # -------------------------------------------------------------------
+  quality-gate:
+    needs: sonar
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for SonarQube Quality Gate
+        uses: sonarsource/sonarqube-quality-gate-action@v1
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  # -------------------------------------------------------------------
+  # 6️⃣ Lint & Unit Tests (Frontend)
+  # -------------------------------------------------------------------
+  lint-test-frontend:
+    needs: quality-gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Frontend Lint
+        run: npm run lint
+        working-directory: ${{ github.workspace }}
+
+      - name: Frontend Unit Tests
+        run: npm test -- --watchAll=false --coverage
+        working-directory: ${{ github.workspace }}
+
+  # -------------------------------------------------------------------
+  # 7️⃣ Lint & Unit Tests (Backend)
+  # -------------------------------------------------------------------
+  lint-test-backend:
+    needs: quality-gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Backend Lint
+        run: npm run lint
+        working-directory: ${{ github.workspace }}/backend
+
+      - name: Backend Unit Tests
+        run: npm test -- --coverage
+        working-directory: ${{ github.workspace }}/backend
+
+  # -------------------------------------------------------------------
+  # 8️⃣ Security Scanning – Trivy (IaC & Dockerfiles)
+  # -------------------------------------------------------------------
+  security-scan:
+    needs: [lint-test-frontend, lint-test-backend]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Trivy
+        uses: aquasecurity/trivy-action@0.11.0
+        with:
+          scan-type: 'fs'
+          # Scan IaC – Terraform files (if any)
+          scan-dir: ./
+          format: 'table'
+
+      - name: Trivy Scan Dockerfiles
+        uses: aquasecurity/trivy-action@0.11.0
+        with:
+          scan-type: 'config'
+          scanners: 'dockerfile'
+          input: .
+          format: 'table'
+
+  # -------------------------------------------------------------------
+  # 9️⃣ Containerization – Docker Build & Push
+  # -------------------------------------------------------------------
+  docker-build-push:
+    needs: security-scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Docker Hub Login
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push Frontend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.frontend
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/db4fresh-frontend:latest
+
+      - name: Build and Push Backend Image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: Dockerfile.backend
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/db4fresh-backend:latest
+
+  # -------------------------------------------------------------------
+  # 🔟 Container Image Security Scan – Trivy on Built Image
+  # -------------------------------------------------------------------
+  trivy-image-scan:
+    needs: docker-build-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Trivy Scan Frontend Image
+        uses: aquasecurity/trivy-action@0.11.0
+        with:
+          image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/db4fresh-frontend:latest
+          format: 'table'
+
+      - name: Trivy Scan Backend Image
+        uses: aquasecurity/trivy-action@0.11.0
+        with:
+          image-ref: ${{ secrets.DOCKERHUB_USERNAME }}/db4fresh-backend:latest
+          format: 'table'
+
+  # -------------------------------------------------------------------
+  # 1️⃣1️⃣ Helm Chart Validation & Lint
+  # -------------------------------------------------------------------
+  helm-validate:
+    needs: trivy-image-scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.14.0
+
+      - name: Helm Lint
+        run: helm lint ./helm/chart
+
+  # -------------------------------------------------------------------
+  # 1️⃣2️⃣ Cloud Authentication – AWS & EKS
+  # -------------------------------------------------------------------
+  aws-auth:
+    needs: helm-validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Update kubeconfig for EKS
+        run: |
+          aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME }}
+
+  # -------------------------------------------------------------------
+  # 1️⃣3️⃣ Deploy Application via Helm to EKS
+  # -------------------------------------------------------------------
+  deploy-helm:
+    needs: aws-auth
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Deploy with Helm
+        run: |
+          helm upgrade --install db4fresh ./helm/chart \
+            --set image.frontend=${{ secrets.DOCKERHUB_USERNAME }}/db4fresh-frontend:latest \
+            --set image.backend=${{ secrets.DOCKERHUB_USERNAME }}/db4fresh-backend:latest \
+            --namespace production --create-namespace
+
+  # -------------------------------------------------------------------
+  # 1️⃣4️⃣ Monitoring Stack Deployment (Prometheus, Grafana, Alertmanager)
+  # -------------------------------------------------------------------
+  monitoring-deploy:
+    needs: deploy-helm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy Prometheus
+        run: helm repo add prometheus-community https://prometheus-community.github.io/helm-charts && helm repo update && helm upgrade --install prometheus prometheus-community/kube-prometheus-stack --namespace monitoring --create-namespace
+
+      - name: Deploy Grafana (via same chart)
+        run: echo "Grafana is included in the Prometheus stack"
+
+      - name: Deploy Alertmanager (included in stack)
+        run: echo "Alertmanager is included in the Prometheus stack"
+
+  # -------------------------------------------------------------------
+  # 1️⃣5️⃣ Slack Notification
+  # -------------------------------------------------------------------
+  expose-endpoint:
+    needs: deploy-helm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'v1.30.0'
+
+      - name: Get Frontend Service External IP
+        id: get_ip
+        run: |
+          for i in {1..30}; do
+            IP=$(kubectl get svc -n production -l app.kubernetes.io/name=db4fresh,app.kubernetes.io/component=frontend -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}')
+            if [ -z "$IP" ]; then
+              IP=$(kubectl get svc -n production -l app.kubernetes.io/name=db4fresh,app.kubernetes.io/component=frontend -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}')
+            fi
+            if [ -n "$IP" ]; then break; fi
+            echo "Waiting for external IP… (${i}/30)"
+            sleep 10
+          done
+          echo "external_ip=$IP" >> $GITHUB_OUTPUT
+
+      - name: Show URL in workflow log
+        run: |
+          echo "🌍 Frontend is reachable at: http://${{ steps.get_ip.outputs.external_ip }}"
+
+      - name: Send IP to Slack (optional)
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\":\"Db4fresh is now live: http://${{ steps.get_ip.outputs.external_ip }}\"}" \
+            $SLACK_WEBHOOK_URL
+    if: always()
+    needs: [monitoring-deploy]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Slack Notification on Workflow Completion
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: '{"text":"Db4fresh CI/CD pipeline completed. Status: ${{ job.status }}"}'
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # -------------------------------------------------------------------
+  # 1️⃣6️⃣ Release Management – GitHub Release
+  # -------------------------------------------------------------------
+  create-release:
+    needs: slack-notify
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && success()
+    steps:
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.run_number }}
+          name: Release v${{ github.run_number }}
+          generate_release_notes: true

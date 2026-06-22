@@ -1,0 +1,26 @@
+# Ignore node_modules and build artifacts
+node_modules/
+backend/node_modules/
+
+# Git files
+.git
+.gitignore
+
+# Logs and OS files
+npm-debug.log
+yarn-error.log
+.DS_Store
+
+# Build output
+dist/
+public/build/
+
+# Dockerfiles themselves (optional)
+Dockerfile.frontend
+Dockerfile.backend
+
+# Helm chart files (not needed in image)
+helm/
+
+# Misc
+*.md

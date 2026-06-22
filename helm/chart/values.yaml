@@ -1,0 +1,46 @@
+replicaCount:
+  frontend: 2
+  backend: 2
+
+image:
+  repository: your-dockerhub-username
+  name:
+    frontend: db4fresh-frontend
+    backend: db4fresh-backend
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  frontend:
+    type: LoadBalancer
+    port: 80
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+  backend:
+    type: ClusterIP
+    port: 4000
+
+ingress:
+  enabled: false
+  hostname: app.db4fresh.example.com
+  tls: false
+  tlsSecretName: db4fresh-tls
+  annotations: {}
+    # kubernetes.io/ingress.class: alb
+    # alb.ingress.kubernetes.io/scheme: internet-facing
+
+resources: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Backend environment variables (non-sensitive)
+env:
+  DB_HOST: "mysql"
+  DB_USER: "db_user"
+  DB_NAME: "db4fresh"
+  KAFKA_BROKER: "kafka:9092"
+  NODE_ENV: "production"
