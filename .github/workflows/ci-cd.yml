@@ -62,7 +62,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build Frontend (Vite)
-        run: npm run build
+        run: npx vite build
         working-directory: ${{ github.workspace }}
 
       - name: Build Backend (transpile if needed)
