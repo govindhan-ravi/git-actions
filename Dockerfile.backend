@@ -11,5 +11,5 @@ COPY backend/ ./
 # Expose the port the server listens on (default 4000)
 EXPOSE 4000
 
-# Start the server
+
 CMD ["node", "server.js"]
