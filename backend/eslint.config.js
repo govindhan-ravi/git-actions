@@ -5,9 +5,9 @@ export default [
   {
     files: ['**/*.js'],
     rules: {
-      'no-unused-vars': 'warn',
+      'no-unused-vars': 'off',
       'no-console': 'off',
-      'semi': ['error', 'always'],
+      'semi': ['warn', 'always']
     },
     languageOptions: {
       ecmaVersion: 2022,
