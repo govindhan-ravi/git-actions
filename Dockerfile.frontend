@@ -12,6 +12,6 @@ RUN npx vite build
 # Production image
 FROM nginx:alpine
 COPY --from=builder /app/dist /usr/share/nginx/html
-# Optional: expose default HTTP port 
+# Optional: expose default HTTP 
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
