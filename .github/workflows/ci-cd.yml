@@ -44,11 +44,11 @@ jobs:
             ${{ runner.os }}-node-
 
       - name: Install Frontend dependencies
-        run: npm ci
+        run: npm install
         working-directory: ${{ github.workspace }}
 
       - name: Install Backend dependencies
-        run: npm ci
+        run: npm install
         working-directory: ${{ github.workspace }}/backend
 
   # -------------------------------------------------------------------
