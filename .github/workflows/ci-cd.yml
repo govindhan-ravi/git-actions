@@ -62,11 +62,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
+      - name: Install Frontend dependencies
+        run: npm install
+        working-directory: ${{ github.workspace }}
       - name: Build Frontend (Vite)
         run: npx vite build
         working-directory: ${{ github.workspace }}
-
       - name: Build Backend (transpile if needed)
         run: |
           # If you have a build step, add it here. For plain JS, this can be a noop.
