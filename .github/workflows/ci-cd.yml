@@ -1,5 +1,8 @@
 name: CI/CD Pipeline for Db4fresh
 
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: 'true'
+
 on:
   push:
     branches: [ main ]
@@ -12,8 +15,7 @@ jobs:
   # -------------------------------------------------------------------
   checkout:
     runs-on: ubuntu-latest
-    outputs:
-      node-version: ${{ steps.setup-node.outputs.node-version }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -339,6 +341,7 @@ jobs:
     steps:
       - name: Slack Notification on Workflow Completion
         uses: slackapi/slack-github-action@v1.24.0
+        continue-on-error: true
         with:
           payload: '{"text":"Db4fresh CI/CD pipeline completed. Status: ${{ job.status }}"}'
         env:
