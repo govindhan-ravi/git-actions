@@ -12,7 +12,7 @@
 // import ReferEarn from "./pages/ReferEarn";
 // import Profile from "./pages/Profile";
 // import DeliveryHistory from "./pages/DeliveryHistory";
-// import CODHistory from "./pages/CodHistory";
+
 // import DeliveryWallet from "./pages/DeliveryWallet";
 // import DeliveryAssignedOrders from "./pages/DeliveryAssignedOrders";
 // import Store from "./pages/Store";
@@ -67,7 +67,7 @@ import Slots from "./pages/Slots";
 import ReferEarn from "./pages/ReferEarn";
 import Profile from "./pages/Profile";
 import DeliveryHistory from "./pages/DeliveryHistory";
-import CODHistory from "./pages/CodHistory";
+import CODHistory from "./pages/CodHistory.jsx";
 import DeliveryWallet from "./pages/DeliveryWallet";
 import DeliveryAssignedOrders from "./pages/DeliveryAssignedOrders";
 import Store from "./pages/Store";
