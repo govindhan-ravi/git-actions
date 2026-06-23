@@ -3,7 +3,7 @@ WORKDIR /app
 
 # Copy only package files first for caching
 COPY backend/package*.json ./
-RUN npm ci --production
+RUN npm install --production
 
 # Copy the rest of the backend source
 COPY backend/ ./
@@ -11,5 +11,5 @@ COPY backend/ ./
 # Expose the port the server listens on (default 4000)
 EXPOSE 4000
 
-
+# Start the server
 CMD ["node", "server.js"]
